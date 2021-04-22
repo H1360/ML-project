@@ -1,0 +1,61 @@
+---
+title: "Machine Learning Project"
+author: "H.F."
+date: "4/21/2021"
+output: html_document
+---
+
+**Background**
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, our goal is to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r my_proj}
+library(ggplot2);library(lattice); library(caret); library(randomForest); library(rpart); library(rpart.plot);library(e1071)
+set.seed(555)
+train_link<-"https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+test_link<-"https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+train <- read.csv(url(train_link), na.strings=c("NA","#DIV/0!", ""))
+test <- read.csv(url(test_link), na.strings=c("NA","#DIV/0!", ""))
+
+#CLEANING
+train<-train[,colSums(is.na(train)) == 0]
+test <-test[,colSums(is.na(test)) == 0]
+train<-train[,-c(1:7)]
+test <-test[,-c(1:7)]
+
+train$classe=as.factor(train$classe) #otherwise cant plot and run the classification
+
+#PARTITIONING
+ss <- createDataPartition(y=train$classe, p=0.75, list=FALSE)
+sub_train <- train[ss, ] 
+sub_test <- train[-ss, ]
+
+plot(sub_train$classe,main="Levels of variable classe", xlab="class", ylab="Frequency")
+```
+
+
+**Random Forest Model**
+```{r my_proj2}
+my_RF<- randomForest(classe ~. , data=sub_train, method="class")
+pred_RF <- predict(my_RF, sub_test, type = "class")
+
+# Test
+confusionMatrix(pred_RF, sub_test$classe)
+```
+
+**Decision Tree Model**
+```{r my_proj3}
+my_DT <- rpart(classe ~ ., data=sub_train, method="class")
+rpart.plot(my_DT, main="Classification Tree", extra=102, under=TRUE, faclen=0)
+pred_DT <- predict(my_DT, sub_test, type = "class")
+confusionMatrix(pred_DT, sub_test$classe)
+```
+
+**It seems Random Forrest produces better results so we use it for prediction on the test data:**
+```{r my_proj4}
+predict(my_RF, test, type="class")
+```
